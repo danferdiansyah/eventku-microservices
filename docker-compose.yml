@@ -1,0 +1,116 @@
+services:
+  # ========================
+  # Databases
+  # ========================
+  event-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: eventdb
+      POSTGRES_PASSWORD: eventdb
+      POSTGRES_DB: eventdb
+    ports:
+      - "5433:5432"
+    volumes:
+      - event-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ticket-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ticketdb
+      POSTGRES_PASSWORD: ticketdb
+      POSTGRES_DB: ticketdb
+    ports:
+      - "5434:5432"
+    volumes:
+      - ticket-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  notification-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: notifdb
+      POSTGRES_PASSWORD: notifdb
+      POSTGRES_DB: notifdb
+    ports:
+      - "5435:5432"
+    volumes:
+      - notif-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notifdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ========================
+  # RabbitMQ
+  # ========================
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # ========================
+  # Backend Services
+  # ========================
+  event-service:
+    build: ./services/event-service
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgres://eventdb:eventdb@event-db:5432/eventdb
+    depends_on:
+      event-db:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "bunx drizzle-kit push && bun run src/db/seed.ts; bun run src/index.ts"
+
+  ticket-service:
+    build: ./services/ticket-service
+    ports:
+      - "3002:3002"
+    environment:
+      DATABASE_URL: postgres://ticketdb:ticketdb@ticket-db:5432/ticketdb
+      EVENT_SERVICE_URL: http://event-service:3001
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      ticket-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      event-service:
+        condition: service_started
+    entrypoint: >
+      sh -c "bunx drizzle-kit push && bun run src/index.ts"
+
+  notification-service:
+    build: ./services/notification-service
+    environment:
+      DATABASE_URL: postgres://notifdb:notifdb@notification-db:5432/notifdb
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      notification-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "bunx drizzle-kit push && bun run src/index.ts"
+
+volumes:
+  event-pgdata:
+  ticket-pgdata:
+  notif-pgdata:
