@@ -1,6 +1,10 @@
 # EventKu Microservices - Workload Design
 
-**Author:** Daniel Ferdiansyah, 2306275052
+---
+
+Daniel Ferdiansyah, 2306275052
+
+---
 
 Platform tiket event berbasis arsitektur microservices dengan komunikasi **Event-Driven** menggunakan **RabbitMQ**.
 
@@ -136,13 +140,10 @@ Perintah ini akan:
 curl http://localhost:3001/api/events
 ```
 
-Catat salah satu `id` dari event yang tersedia.
-
-![Daftar Event](docs/screenshots/1-list-events.png)
+![Daftar Event](docs/screenshots/1.png)
 
 ### 2. Booking Tiket (Trigger Producer `ticket.booked`)
 
-Ganti `<EVENT_ID>` dengan UUID dari langkah 1:
 
 ```bash
 curl -X POST http://localhost:3002/api/tickets \
@@ -155,7 +156,7 @@ curl -X POST http://localhost:3002/api/tickets \
   }'
 ```
 
-![Booking Tiket](docs/screenshots/2-book-ticket.png)
+![Booking Tiket](docs/screenshots/2.png)
 
 ### 3. Log Producer — Event Terkirim
 
@@ -163,9 +164,7 @@ curl -X POST http://localhost:3002/api/tickets \
 docker compose logs ticket-service
 ```
 
-Cari pesan: `Published event [ticket.booked]: {...}`
-
-![Log Producer](docs/screenshots/3-producer-log.png)
+![Log Producer](docs/screenshots/3.png)
 
 ### 4. Log Consumer — Notification Service Menerima Event
 
@@ -173,19 +172,15 @@ Cari pesan: `Published event [ticket.booked]: {...}`
 docker compose logs notification-service
 ```
 
-Cari pesan: `Received ticket.booked event:` dan `Notification saved for ticket`
-
-![Log Consumer](docs/screenshots/4-consumer-log.png)
+![Log Consumer](docs/screenshots/4.png)
 
 ### 5. Batalkan Tiket (Trigger Producer `ticket.cancelled`)
-
-Ganti `<TICKET_ID>` dengan UUID dari response langkah 2:
 
 ```bash
 curl -X PATCH http://localhost:3002/api/tickets/<TICKET_ID>/cancel
 ```
 
-![Cancel Tiket](docs/screenshots/5-cancel-ticket.png)
+![Cancel Tiket](docs/screenshots/5.png)
 
 ### 6. Log Consumer — Notifikasi Pembatalan
 
@@ -193,9 +188,7 @@ curl -X PATCH http://localhost:3002/api/tickets/<TICKET_ID>/cancel
 docker compose logs notification-service
 ```
 
-Cari pesan: `Received ticket.cancelled event:` dan `Cancellation notification saved`
-
-![Log Cancel Consumer](docs/screenshots/6-consumer-cancel-log.png)
+![Log Cancel Consumer](docs/screenshots/6.png)
 
 ### 7. Verifikasi Kursi Kembali
 
@@ -203,15 +196,13 @@ Cari pesan: `Received ticket.cancelled event:` dan `Cancellation notification sa
 curl http://localhost:3001/api/events
 ```
 
-`availableSeats` pada event yang dibatalkan harus bertambah kembali.
-
-![Kursi Kembali](docs/screenshots/7-seats-restored.png)
+![Kursi Kembali](docs/screenshots/7.png)
 
 ### 8. RabbitMQ Management UI
 
-Buka http://localhost:15672 (login: guest/guest). Tampilkan exchange `eventku.events` dan queue yang aktif.
-
-![RabbitMQ UI](docs/screenshots/8-rabbitmq-ui.png)
+![RabbitMQ UI](docs/screenshots/8.png)
+![RabbitMQ UI](docs/screenshots/9.png)
+![RabbitMQ UI](docs/screenshots/10.png)
 
 ---
 
